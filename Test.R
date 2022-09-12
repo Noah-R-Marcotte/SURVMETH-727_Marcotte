@@ -7,3 +7,8 @@ test <- function(x){
 test2 <- function(x){
   x^2
   }
+
+library(ggplot2)
+
+plot(test)
+
