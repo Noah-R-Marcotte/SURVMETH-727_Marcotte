@@ -10,5 +10,6 @@ test2 <- function(x){
 
 library(ggplot2)
 
-plot(test)
+plot(test, col = "blue", lwd = 2)
+plot(test2, col = "red", lwd = 2)
 
