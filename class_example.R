@@ -38,6 +38,26 @@ summary <- function(x){
 summary(c(1,2,3))
 summary(c(2,3,5,9,8,14,2))
 
+library(MASS)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(corrplot)
+library(leaps)
+library(rpart)
+library(mgcv)
+library(glmnet)
+library(boot)
+library(rpart.plot)
 
+data(Boston)
 
+output <- vector("double",length(Boston))
+
+for (i in seq_along(Boston)){
+    output[i] <- 3*(mean(Boston[,i]) - median(Boston[,i]))
+  }
+output
+
+seq(length(Boston))
 
