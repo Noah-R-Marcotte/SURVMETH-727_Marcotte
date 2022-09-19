@@ -25,12 +25,13 @@ typeof(A)
 
 # 3. Convert A into an integer vector
 
-as.integer(A)
+A <- as.integer(A)
 
 # 4. Create an integer vector B containing the numbers one through ten
 
 B <- c(1:10)
-
+typeof(B)
+"integer"
 
 # 5. Create a new vector C from B which has the type "double"
 
@@ -38,17 +39,20 @@ C <- B*2
 typeof(C)
 
 # 6. Change the third value of B to "3.5"
-
-
+B <- replace(B, 3, 3.5)
 
 # 7. Did this affect the type of B? How?
 
+typeof(B)
+# the type of B became a "double" instead of an integer
 
 ### Reading in data
 # Download both the Angell.dta (Stata data format) dataset and the Angell.txt dataset from this website
 # https://stats.idre.ucla.edu/stata/examples/ara/applied-regression-analysis-by-fox-data-files/
 
 # 8. Read in the .dta version and store in an object called angell_stata
+library(haven)
+angell_stata <- read_dta("angell.dta")
 
 # 9. Read in the .txt version and store it in an object called angell_txt
 
