@@ -60,20 +60,71 @@ angell_txt <- read.table("angell.txt")
 
 # 10. Drop the first five observations in the angell_txt object
 
-# 11. Select columns 2 and 3 of the agell_stata object and store them in a new object called angell_small
+library(dplyr)
+
+angell_txt <- angell_txt %>% slice(-c(1:5))
+
+head(angell_stata)
+head(angell_txt)
+
+# 11. Select columns 2 and 3 of the angell_stata object and store them in a new object called angell_small
+
+angell_small <- angell_stata %>% select(2,3)
 
 # R comes also with many built-in datasets. The "MASS" package, for example, comes with the "Boston" dataset
 # 12. Install the "MASS" package, load the package. Then, load the Boston dataset
 
+install.packages("MASS")
+library(MASS)
+data("Boston")
+
 # 13. What is the type of the Boston object?
+typeof(Boston)
+#The Boston object is a list.
 
 # 14. What is the class of the Boston object?
+
+class(Boston)
+#The class of the Boston object is a data.frame.
+
 
 ### Basic data summarizing and description
 # 15. How many of the suburbs in the Boston data set bound the Charles river?
 
+sum(with(Boston, chas==1))
+#35 suburbs in the Boston dataset are bound by the Charles river.
+
 # 16. Do any of the suburbs of Boston appear to have particularly high crime rates? Tax rates?
 # Pupil-teacher ratios? Comment on the range of each variable.
+
+summary(Boston$crim)
+hist(Boston$crim)
+boxplot(Boston$crim)
+sum(with(Boston, crim>=30))
+sum(with(Boston, crim>=20))
+sum(with(Boston, crim>=3.67708))
+    
+# Some suburbs have high crime rates. These crime rates range from less than 0.01 to 88.98. 
+# 8 suburbs have crime rates higher than or equal to 30. 18 suburbs have rates higher than 20.
+# 127 suburbs have higher crime rates than those suburbs at or below the 3 quartile.   
+
+summary(Boston$tax)
+hist(Boston$tax)
+boxplot(Boston$tax)
+sum(with(Boston, tax>=500))
+# Tax rates for suburbs range from 187 to 711. 
+# 137 suburbs have the highest tax rates.
+
+
+summary(Boston$ptratio)
+hist(Boston$ptratio)
+boxplot(Boston$ptratio)
+sum(with(Boston, ptratio>=20))
+sum(with(Boston, ptratio<=14))
+
+# The pupil-teacher ratios in the Boston suburbs range from 12.6 to 22. 
+# Here, 201 of the suburbs have a ratio of at least 20.
+# Of note here are the ones with particularly low ratios: 16 suburbs have ratios of 14 or less.  
 
 # 17. What is the median pupil-teacher ratio among the towns in this data set that
 # have a per capita crime rate larger than 1 ?
