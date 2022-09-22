@@ -129,19 +129,39 @@ sum(with(Boston, ptratio<=14))
 # 17. What is the median pupil-teacher ratio among the towns in this data set that
 # have a per capita crime rate larger than 1 ?
 
+high_crime <- Boston
+high_crime <- high_crime %>% arrange(desc(crim))
+sum(with(Boston, crim>=1))
+high_crime <- high_crime %>% slice(-c(175:506))
+
+summary(high_crime$ptratio)
+
+hist(high_crime$ptratio)
+
+#median pupil-teacher ratio in towns with higher crime rates than 1 is 20.2. 
 
 ### Functions
 # 18. Write a function that calculates the squareroot of an integer
 
+func_sqrt <- function(x){
+ sqrt(x)
+}
+#test
+func_sqrt(16) #returns 4
 
 # 19. Write a function that calculates 95% confidence intervals for a point estimate.
 # The function should be called "my_CI"
 # When called with "my_CI(2, 0.2)", the output of the function should read
-# "The 95% CI upper bound of point estimate 2 with standard error 0.2 is 2.392. The lower bound is 1.608."
+# "The 95% CI upper bound of point estimate 2 with standard error 0.2 is 2.392. 
+# The lower bound is 1.608."
 # Note: the function should take a point estimate and its standard error as arguments
 # You may use the formula for 95% CI: point estimate +/- 1.96*standard error)
 # Pasting text in R: paste() and paste0()
 
+my_CI <- function(x) {
+  output <- 
+
+}
 # 20. Write a function that converts all negative numbers in the following dataset into NA
 # Use as little code as possible and try to avoid code repetition
 set.seed(1002)
