@@ -27,30 +27,68 @@ plot(res)
 The resulting list includes a `data.frame` with the search interest by city. Extract this data set as a `tibble` and print the first few observations.
 
 ```{r}
+city <- as.tibble(res$interest_by_city)
+head(city)
+
+time<- as.tibble(res$interest_over_time)
 
 ```
 
 Find the mean, median and variance of the search hits for the keywords `crime` and `loans`. This can be done via piping with `dplyr`.
 
 ```{r}
+stats <- city %>% 
+  group_by(keyword) %>%
+  summarize(mean= mean(hits, na.rm = T),
+            var = var(hits, na.rm = T),
+            median = median(hits, na.rm = T)
+            )
 
 ```
+
+$Mean_{crime}$ = 22.84
+$Median_{crime}$ = 21
+$Var_{crime}$ = 152.73
+
+$Mean_{loans}$ = 24.39
+$Median_{loans}$ = 21
+$Var_{loans}$ = 227.44
 
 Note that there might be multiple rows for each city if there were hits for both "crime" and "loans" in that city. It might be easier if we had the search hits info for both search terms in two separate variables. That is, each row would represent a unique city. Transform the `tibble` accordingly and save the result as a new object.
 
 ```{r}
+
+city2 <- city %>% 
+  group_by(keyword) %>%
+  mutate(number = row_number()) %>%
+  tidyr::pivot_wider(names_from=keyword, values_from = hits) %>%
+  select(-number)
 
 ```
 
 Which cities (locations) have the highest search frequency for `loans`? Print the first rows of the new `tibble` from the previous chunk, ordered by `loans`.
 
 ```{r}
+city2 <- city2 %>% 
+  arrange(desc(loans))
 
+head(city2)
 ```
+The cities with the highest search frequencies of loans are Benld, Aroma Park, Hanover, Pistakee Highlands, and Zion. 
+
 
 Is there a relationship between the search intensities between the two keywords we used? Create a scatterplot of `crime` and `loans` with `qplot()`.
 
 ```{r}
+
+scatterplot <- ggplot(data = time) +
+  geom_point(mapping = 
+      aes(x = date, 
+          y = hits, 
+          color = keyword)
+      )
+
+scatterplot
 
 ```
 
@@ -63,7 +101,7 @@ https://api.census.gov/data/key_signup.html
 Once you have an access key, store this key in the cs_key object. We will use this object in all following API queries.
 
 ```{r}
-cs_key <- "your key"
+cs_key <- "31a360051b30b7f9a4e7b1633aa1aaa3a049531c"
 ```
 
 In the following, we request basic socio-demographic information (population, median age, median household income, income per capita) for cities and villages in the state of Illinois.
@@ -95,38 +133,74 @@ acs_il <-
 Print the first rows of the variable `NAME`.
 
 ```{r}
+head(acs_il$NAME)
 
 ```
 
 It seems like we could try to use this location information listed above to merge this data set with the Google Trends data. However, we first have to clean `NAME` so that it has the same structure as `location` in the search interest by city data. Add a new variable `location` to the ACS data that only includes city names. 
 
 ```{r}
+census <- acs_il %>%
+  separate(NAME, into = c("location", "State"), 
+           sep = ",", remove = F)
+```
+
+```{r}
+census2 <- census
+census2$location <- gsub(" city","",census2$location)
+census2$location <- gsub(" village","",census2$location)
+census2$location <- gsub(" town","",census2$location)
 
 ```
 
 First, check how many cities don't appear in both data sets, i.e. cannot be matched.
 
 ```{r}
+no_match <- anti_join(census2, city2, by = "location", copy = TRUE)
 
 ```
+
+1031 cities have no match across both datasets. 
 
 That's a lot, unfortunately. However, we can still try using the data. Create a new data set by joining the Google Trends and the ACS data. Keep only cities that appear in both data sets. 
 
 ```{r}
+
+GT_ACS <- merge(census2, city2, by="location")
 
 ```
 
 Now we can utilize information from both data sources. As an example, print the `crime` and `loans` search popularity for the first ten cities in Illinois with the highest population (in 2016).
 
 ```{r}
+GT_ACS <- GT_ACS %>% 
+  arrange(desc(pop))
+
+head(GT_ACS, 11)
 
 ```
 
-Next, compute the mean of the search popularity for both keywords for cities that have an above average median household income and for those that have an below average median household income. When building your pipe, start with creating the grouping variable and then proceed with the remaining tasks.
+Next, compute the mean of the search popularity for both keywords for cities that have an above average median household income and for those that have an below average median household income. 
+
+When building your pipe, start with creating the grouping variable and then proceed with the remaining tasks.
 
 ```{r}
-
+mean(GT_ACS$hh_income)
 ```
+
+```{r}
+GT_ACS_High <- GT_ACS %>%
+  arrange(desc(hh_income))
+sum(with(GT_ACS, hh_income >=52151.5))
+GT_ACS_High <- GT_ACS_High %>% slice(-c(148:375))
+
+GT_ACS_Low <- GT_ACS %>%
+  arrange(desc(hh_income))
+GT_ACS_Low <- GT_ACS_Low %>% slice(-c(0:147))
+
+```    
+mean = 52151.5
+
 
 Is there a relationship between the median household income and the search popularity of `loans`? Plot a scatterplot with `qplot()`.
 
