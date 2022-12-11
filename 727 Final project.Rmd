@@ -1,0 +1,406 @@
+---
+title: "What Religious People Think About The 2022 U.S.Midterm Elections"
+author: "Noah Marcotte  Dongqiang Zhou"
+date: "12/11/2022"
+output:
+  pdf_document:
+    toc: yes
+    df_print: kable
+  word_document:
+    toc: yes
+subtitle: How do religious people (evangelicals) react to elections that have favorable/unfavorable
+  outcome for them
+references:
+- id: Wickham2014
+  title: Tidy Data
+  author:
+  - family: Wickham
+    given: Hadley
+  container-title: Journal of Statistical Software
+  volume: 59
+  issue: 10
+  page: "1-23"
+  type: "article-journal"
+  issued:
+    year: 2014
+- id: Baumer2017
+  title: Modern Data Science with R
+  author:
+  - family: Baumer
+    given: Benjamin S.
+  - family: Kaplan
+    given: Daniel T.
+  - family: Horton
+    given: Nicholas J.
+  type: book
+  publisher: Chapman \& Hall/CRC Press.
+  issued:
+    year: 2017
+---
+
+```{r, include = FALSE}
+library(knitr)
+library(tidyverse)
+library(rtweet)
+library(tidyverse)
+library(tidytext)
+library(ggmap)
+library(stopwords)
+library(SentimentAnalysis)
+library(wordcloud)
+```
+
+## Introduction
+
+  In our project, we will explore the perspective of religious people (particularly evangelicals) on the outcome of the 2022 midterm elections. As the election results come in, we find two states that were close but won by two different parties, and that are geographically adjacent. The two states we focus on are Ohio and Pennsylvania. (One state had a Democrat win, while the other had the Republican win). 
+  We plan to evaluate the perceived legitimacy of the elections lost (PA) and compare it with the election they won (OH). We used "rtweets" to find 1000 tweets from each of the two states to compare evangelical sentiment about the elections. In addition, the keywords we used to look for tweets are: "Midterm/Election/States' names + Candidates' names + God/pray/believe"
+
+## Data
+
+This section describes the data sources and the data gathering process.
+
+```{r}
+PA_tweets <- search_tweets(
+  q = "Midterm OR Election OR Pennsylvania OR PA
+  AND (Fetterman OR Oz)",
+  n = 1000,
+  include_rts = FALSE
+)
+
+PA_tweets_relig <- search_tweets(
+  q = "Midterm OR Election OR Pennsylvania OR PA
+  AND (Fetterman OR Oz)
+  AND (God OR pray OR believe)",
+  n = 1000,
+  include_rts = FALSE
+)
+```
+
+```{r}
+OH_tweets <- search_tweets(
+  q = "Midterm OR Election OR Ohio 
+  AND (Vance OR Ryan)",
+  n = 1000,
+  include_rts = FALSE
+)
+
+OH_tweets_relig <- search_tweets(
+  q = "Midterm OR Election OR Ohio 
+  AND (Vance OR Ryan)
+  AND (God OR pray OR believe)",
+  n = 1000,
+  include_rts = FALSE
+)
+```
+
+We will now state our expectations and predictions about the nature of th twitter data we have just scraped. 
+
+Regarding the Ohio data, we expect there to be more positive sentiments (because the Republican won) in the religion-based data. In contrast, we would expect to see more negative sentiment in the religion PA data (because the Republican lost). For the overall datasets of the two States, we expect there to be similar sentiments. Since Pennsylvanians and Ohio-ans who use twitter are not necessarily different in a way which would lead to opposing sentiments. Finally, we expect that the religious based data will be more extreme than the regular data. That is, the Ohio religious data will be more positive than the regular ohio data, and the Pennsylvania religious dataset will be more negative than the regular PA data. 
+
+We will now clean the four datasets and create new objects to hold their most common words. 
+
+```{r, include = FALSE}
+# Additional code chunks that repeat tasks or do basic things can be hidden
+clean_tweets <- function(x) {
+  x %>%
+    # Remove URLs
+    str_remove_all(" ?(f|ht)(tp)(s?)(://)(.*)[.|/](.*)") %>%
+    # Remove mentions e.g. "@my_account"
+    str_remove_all("@[[:alnum:]_]{4,}") %>%
+    # Remove hashtags
+    str_remove_all("#[[:alnum:]_]+") %>%
+    # Replace "&" character reference with "and"
+    str_replace_all("&amp;", "and") %>%
+    # Remove puntucation, using a standard character class
+    str_remove_all("[[:punct:]]") %>%
+    # Remove "RT: " from beginning of retweets
+    str_remove_all("^RT:? ") %>%
+    # Replace any newline characters with a space
+    str_replace_all("\\\n", " ") %>%
+    # Make everything lowercase
+    str_to_lower() %>%
+    # Remove any trailing whitespace around the text
+    str_trim("both")
+}
+
+clean_PA <- PA_tweets$full_text %>% clean_tweets()
+clean_PA <- data.frame(clean_PA)
+clean_PA_relig <- PA_tweets_relig$full_text %>% clean_tweets()
+clean_PA_relig <- data.frame(clean_PA_relig)
+
+clean_OH <- OH_tweets$full_text %>% clean_tweets()
+clean_OH <- data.frame(clean_OH)
+clean_OH_relig <- OH_tweets_relig$full_text %>% clean_tweets()
+clean_OH_relig <- data.frame(clean_OH_relig)
+```
+
+```{r, include=FALSE}
+most_common_words_PA <- clean_PA %>% 
+  tidyr::separate_rows(clean_PA, sep = "\\s+") %>%
+  group_by(clean_PA) %>% 
+  count(clean_PA) %>%
+  top_n(20, n) 
+
+most_common_words_PA_relig <- clean_PA_relig %>% 
+  tidyr::separate_rows(clean_PA_relig, sep = "\\s+") %>%
+  group_by(clean_PA_relig) %>% 
+  count(clean_PA_relig) %>%
+  top_n(20, n) 
+
+```
+
+```{r}
+most_common_words_OH <- clean_OH %>% 
+  tidyr::separate_rows(clean_OH, sep = "\\s+") %>%
+  group_by(clean_OH) %>% 
+  count(clean_OH) %>%
+  top_n(20, n) 
+
+most_common_words_OH_relig <- clean_OH_relig %>% 
+  tidyr::separate_rows(clean_OH_relig, sep = "\\s+") %>%
+  group_by(clean_OH_relig) %>% 
+  count(clean_OH_relig) %>%
+  top_n(20, n) 
+
+```
+
+```{r}
+sum(with(most_common_words_OH, n==1))
+sum(with(most_common_words_OH, n==2))
+sum(with(most_common_words_OH, n==3))
+sum(with(most_common_words_OH, n==4))
+
+freq_OH <- as_tibble(most_common_words_OH) %>%
+  arrange(n)
+freq_OH <- freq_OH[-c(1:2217), ]
+#delete observations n<5 
+freq_OH <- freq_OH %>% 
+  filter(!(clean_OH %in% stopwords()))
+#remove stop_words
+freq_OH <- freq_OH %>% 
+  arrange(desc(n)) %>%
+  slice(-c(1:2,8,25:26,211))
+#remove search words
+```
+
+```{r}
+freq_OH_relig <- as_tibble(most_common_words_OH_relig) %>%
+  arrange(n)
+
+sum(with(most_common_words_OH_relig, n==1))
+sum(with(most_common_words_OH_relig, n==2))
+sum(with(most_common_words_OH_relig, n==3))
+sum(with(most_common_words_OH_relig, n==4))
+
+freq_OH_relig <- freq_OH_relig[-c(1:504), ]
+#delete observations n<5 
+freq_OH_relig <- freq_OH_relig %>% 
+  filter(!(clean_OH_relig %in% stopwords()))
+#remove stop_words
+
+freq_OH_relig <- freq_OH_relig %>% 
+  arrange(desc(n)) %>%
+  slice(-c(1:4,7,9,13))
+#remove search words 
+
+```
+
+```{r}
+sum(with(most_common_words_PA, n==1))
+sum(with(most_common_words_PA, n==2))
+sum(with(most_common_words_PA, n==3))
+sum(with(most_common_words_PA, n==4))
+
+freq_PA <- as_tibble(most_common_words_PA) %>%
+  arrange(n)
+
+freq_PA <- freq_PA[-c(1:4341), ]
+#delete observations n<5 
+freq_PA <- freq_PA %>% 
+  filter(!(clean_PA %in% stopwords()))
+#remove stop_words
+
+freq_PA <- freq_PA %>% 
+  arrange(desc(n)) %>%
+  slice(-c(1:5,80,140,314,377,403,542))
+#remove search words
+
+```
+
+```{r}
+sum(with(most_common_words_PA_relig, n==1))
+sum(with(most_common_words_PA_relig, n==2))
+sum(with(most_common_words_PA_relig, n==3))
+sum(with(most_common_words_PA_relig, n==4))
+
+freq_PA_relig <- as_tibble(most_common_words_PA_relig) %>%
+  arrange(n)
+
+freq_PA_relig <- freq_PA_relig[-c(1:917), ]
+#delete observations n<5 
+
+freq_PA_relig <- freq_PA_relig %>% 
+  filter(!(clean_PA_relig %in% stopwords()))
+#remove stop_words
+
+freq_PA_relig <- freq_PA_relig %>% 
+  arrange(desc(n)) %>%
+  slice(-c(1:6,10,44,68))
+#remove search words
+
+```
+
+
+## Results
+
+This section presents the main results.
+
+### Data exploration
+
+The results section may have a data exploration part, but in general the structure here depends on the specific project.
+
+```{r}
+print(freq_PA_relig)
+```
+```{r}
+wordcloud(words = freq_PA_relig$clean_PA_relig, freq = freq_PA_relig$n, 
+          colors=brewer.pal(8,"Dark2"))
+```
+In addition to examining which words appear most frequently (though our wordcloud), we will also look at the overall sentiment of these data. 
+
+```{r}
+sentiments_PA_relig = analyzeSentiment(iconv(as.character(freq_PA_relig$clean_PA_relig), to='UTF-8'))
+sentiments_PA_relig <- na.omit(sentiments_PA_relig)
+
+summary(sentiments_PA_relig$SentimentGI)
+summary(sentiments_PA_relig$PositivityGI)
+summary(sentiments_PA_relig$NegativityGI)
+
+t.test(sentiments_PA_relig$PositivityGI, sentiments_PA_relig$NegativityGI)
+mean(sentiments_PA_relig$SentimentGI)
+```
+
+We find no evidence supporting more positive or negative sentiment in the PA religion twitter data (p = 0.1393). Here, there does not appear to be an overwhelmingly negative sentiment. This contradicts what we predicted. We would have expected more negative sentiment among tweets with religious language due to the Republican loss in that state. 
+
+```{r}
+print(freq_OH_relig)
+```
+```{r}
+wordcloud(words = freq_OH_relig$clean_OH_relig, freq = freq_OH_relig$n,
+          colors=brewer.pal(8,"Dark2"))
+```
+Unfortunately, we do not have enough cases in the Ohio religion dataset to conduct effective sentiment analysis. 
+
+### Analysis
+
+Here, we will conduct a sentiment analysis of the tweets from the two main datasets for each state: Ohio Tweets and Pennsylvania Tweets. 
+
+```{r}
+sentiments_PA = analyzeSentiment(iconv(as.character(clean_PA$clean_PA), to='UTF-8'))
+
+sentiments_PA <- na.omit(sentiments_PA)
+
+PA_neg <- hist(sentiments_PA$NegativityGI, breaks = 10, plot = FALSE)
+PA_pos <- hist(sentiments_PA$PositivityGI, breaks = 10, plot = FALSE)
+c1 <- rgb(173,216,230,max = 255, alpha = 80, names = "lt.blue")
+c2 <- rgb(255,192,203, max = 255, alpha = 80, names = "lt.pink")
+
+```
+
+```{r}
+plot(PA_pos, col = c1, 
+     ylim = c(0,300), xlim = c(0,1), 
+     xlab = "Positivity(GI)",
+     main = "PA Tweet Sentiments")
+plot(PA_neg, col = c2, 
+     ylim = c(0,300), xlim = c(0,1),
+     xlab = "Negativity(GI)",
+     main = "PA Tweet Sentiments")
+```
+From the two histograms, it appears that there is more positive sentiment, than negative sentiment in the PA tweets. However, to confirm, we will run a t-test.
+
+```{r}
+t.test(sentiments_PA$PositivityGI, sentiments_PA$NegativityGI)
+mean(sentiments_PA$PositivityGI)
+mean(sentiments_PA$NegativityGI)
+```
+Indeed, we find strong evidence (p < 2.2e-16) that there is more positive sentiment than negative senitment in the PA tweets. 
+
+
+Now we will perform the same procedures on the Ohio tweet dataset. 
+```{r}
+sentiments_OH = analyzeSentiment(iconv(as.character(clean_OH$clean_OH), to='UTF-8'))
+
+sentiments_OH <- na.omit(sentiments_OH)
+
+summary(sentiments_OH$SentimentGI)
+summary(sentiments_OH$PositivityGI)
+summary(sentiments_OH$NegativityGI)
+
+OH_neg <- hist(sentiments_OH$NegativityGI, breaks = 10, plot = FALSE)
+OH_pos <- hist(sentiments_OH$PositivityGI, breaks = 10, plot = FALSE)
+```
+
+```{r}
+plot(OH_pos, col = c1, 
+     ylim = c(0,200), xlim = c(0,0.6), 
+     xlab = "Positivity (GI)",
+     main = "OH Tweet Sentiments")
+plot(OH_neg, col = c2, 
+     ylim = c(0,200), xlim = c(0,0.6),
+     xlab = "Negativity (GI)",
+     main = "OH Tweet Sentiments")
+```
+Similar to the PA data, we also see more positive sentiment in these tweets. We will also compare the means of the variables using a t-test:
+
+```{r}
+t.test(sentiments_OH$PositivityGI, sentiments_OH$NegativityGI)
+mean(sentiments_OH$PositivityGI)
+mean(sentiments_OH$NegativityGI)
+```
+Again, we find strong evidence (p < 2.2e-16) that there is more positive sentiment than negative in the Ohio tweets dataset (confirming what we saw in the histograms).
+
+
+Now we will compare the two datasets using the variable SentimentGI.This variable is calcuated based on the number of positive words (PositivityGI) minus the number of negative words (NegativitiyGI) in a given dataset. Here, a positive SentimentGI score, indicates more positive words in the tweets than negative ones.
+
+```{r}
+hist(sentiments_OH$SentimentGI,
+     main = "Tweet Sentiments",
+     xlab = "Sentiments (GI)", 
+     xlim = c(-0.4,1),
+     ylim = c(0,350),
+     col = c2,
+)
+hist(sentiments_PA$SentimentGI,
+     col = c1,
+     add = TRUE
+     )
+
+t.test(sentiments_PA$SentimentGI, sentiments_OH$SentimentGI)
+mean(sentiments_PA$SentimentGI)
+mean(sentiments_OH$SentimentGI)
+
+```
+
+For our analysis of the two data sets of the tweets from PA and OH, we primarily used sentiment analysis. Here, we are able to compare the overall sentiment across the different state-based tweet data sets. Based on the histogram of the sentiments of the two states, it appears that there is no difference between the two states. The shapes look fairly similar and both appear to be distributed around 0. 
+
+However, upon closer examination of the data, we do find some evidence for some differences. Our t-test comparing the two means (SentimentGI in the PA dataset against SentimentGI in the OH dataset), we found a moderately significant p-value (0.0224), indicating there may actually be a difference across these two states (albeit, a small one). Here, the mean sentiment of the OH tweets was 0.066, whereas the mean of the PA tweets was 0.046. Thus, while both datasets skew towards positive sentiment, we can see (just barely) more skew in the Ohio than in Pennsylvania.
+
+Finally, we use a sentiment analysis to compare the regular PA dataset with religion one. 
+
+```{r}
+t.test(sentiments_PA$SentimentGI, sentiments_PA_relig$SentimentGI)
+t.test(sentiments_PA$NegativityGI, sentiments_PA_relig$NegativityGI)
+t.test(sentiments_PA$PositivityGI, sentiments_PA_relig$PositivityGI)
+```
+Here, we find no evidence that those tweets in the PA religion dataset are any different than those tweets in the regular PA dataset (p = 0.4665). Similarly, the differences between postive senitments and negative sentiments across the two datasets were also not significant (p=0.5959 and p=0.1695, respectively).
+
+## Discussion
+
+Ultimately, we found few statistically significant differences across the two states. Although, we did find slightly more positive sentiment in the Ohio data. We also found no differences between the religion PA data and the regular PA data in terms of sentiment analyis. 
+
+There are also a few limitations with this work. Because of when we collected the data, a portion of tweets from Ohio were related to Michigan - Ohio State football game. Here, we might have expected this confounding event to cause more negative sentiment in the Ohio dataset (because they lost). Nevertheless, it does not appear to have skewed the Ohio sentiment to be more negative.
+
+Moreover, our Ohio twitter data with religious themed tweets (words like god, pray, believe), yielded a much smaller dataset than in Pennsylvania. This difference in the size of the datasets made comparisons difficult and sentiment analysis in the religion Ohio dataset impossible. 
+
+
