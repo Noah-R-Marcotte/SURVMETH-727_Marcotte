@@ -10,20 +10,25 @@ library(qdap)
 
 PA_tweets <- search_tweets(
   q = "Midterm OR Election OR Pennsylvania OR PA
-  AND (Fetterman OR Oz) 
+  AND (Fetterman OR Oz)",
+  n = 1000,
+  include_rts = FALSE
+)
+
+OH_tweets_relig <- search_tweets(
+  q = "Midterm OR Election OR Ohio 
+  AND (Vance OR Ryan) 
   AND (God OR pray OR believe)",
-  n = 100,
+  n = 1000,
   include_rts = FALSE
 )
 
 OH_tweets <- search_tweets(
   q = "Midterm OR Election OR Ohio 
-  AND (Vance OR Ryan) 
-  AND (God OR pray OR believe)",
-  n = 100,
+  AND (Vance OR Ryan)",
+  n = 1000,
   include_rts = FALSE
 )
-
 
 clean_tweets <- function(x) {
   x %>%
@@ -46,6 +51,13 @@ clean_tweets <- function(x) {
     # Remove any trailing whitespace around the text
     str_trim("both")
 }
+remov_stopwords <- function(x){
+  filter(!(word %in% stopwords()))
+}
+
+
+clean_PA_relig <- PA_tweets_relig$full_text %>% clean_tweets()
+clean_PA_relig <- data.frame(clean_PA_relig)
 
 clean_PA <- PA_tweets$full_text %>% clean_tweets()
 clean_PA <- data.frame(clean_PA)
@@ -58,6 +70,12 @@ most_common_words_PA <- clean_PA %>%
   group_by(clean_PA) %>% 
   count(clean_PA) %>%
   top_n(20, n) 
+
+most_common_words_PA %>%
+  arrange(desc(n))
+
+
+
 
 sum(with(most_common_words_PA, n==1))
 
